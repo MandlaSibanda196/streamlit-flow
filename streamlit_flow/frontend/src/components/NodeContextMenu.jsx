@@ -6,10 +6,14 @@ import Form from 'react-bootstrap/Form';
 import FloatingLabel from 'react-bootstrap/FloatingLabel';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import ListGroup from 'react-bootstrap/ListGroup';
 
 const EditNodeModal = ({show, node, handleClose, theme, setNodeContextMenu, setModalClosing, setNodes, nodes, edges, handleDataReturnToStreamlit}) => {
 
     const [editedNode, setEditedNode] = useState(node);
+    const [columns, setColumns] = useState(editedNode.data.columns || []);
+    const [newColumnName, setNewColumnName] = useState('');
+    const [newColumnType, setNewColumnType] = useState('string'); // Default type
     const allowTypeChange = edges.filter(edge => edge.source === editedNode.id || edge.target === editedNode.id).length === 0;
     
     const onExited = (e) => {
@@ -50,86 +54,115 @@ const EditNodeModal = ({show, node, handleClose, theme, setNodeContextMenu, setM
         setEditedNode((editedNode) => ({...editedNode, deletable: e.target.checked}));
     };
 
+    const handleAddColumn = () => {
+        if (newColumnName.trim()) {
+            setColumns([...columns, { name: newColumnName.trim(), type: newColumnType }]);
+            setNewColumnName('');
+            setNewColumnType('string'); // Reset to default after adding
+        }
+    };
+
+    const handleRemoveColumn = (index) => {
+        setColumns(columns.filter((_, i) => i !== index));
+    };
 
     const handleSaveChanges = (e) => {
-        const updatedNodes = nodes.map(n => n.id === editedNode.id ? editedNode : n);
+        const updatedNode = {
+            ...editedNode,
+            data: {...editedNode.data, columns: columns},
+        };
+        const updatedNodes = nodes.map(n => n.id === updatedNode.id ? updatedNode : n);
         setNodes(updatedNodes);
         handleDataReturnToStreamlit(updatedNodes, edges, null);
         setNodeContextMenu(null);
     };
 
     return (
-    <Modal show={show} onHide={handleClose} data-bs-theme={theme} onExited={onExited}>
-        <Modal.Header closeButton>
-            <Modal.Title>Edit Node</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-        <Row className='g-2'>
-            <Col md>
-                <FloatingLabel controlId="floatingInput" label="Node Content">
-                    <Form.Control type="text" as="textarea" style={{ height: '100px' }} placeholder="nodeContent" value={editedNode.data.content} autoFocus onChange={onNodeContentChange}/>
-                </FloatingLabel>
-            </Col>
-        </Row>
-        <Row className='g-2 mt-1 mt-md-0'>
-            <Col md>
-                <FloatingLabel controlId="floatingInput" label="Node Width">
-                    <Form.Control type="number" placeholder="nodeWidth" value={editedNode.width} autoFocus onChange={onNodeWidthChange}/>
-                </FloatingLabel>
-            </Col>
-            <Col md>
-                <FloatingLabel controlId="floatingSelect" label="Node Type" onChange={onNodeTypeChange}>
-                    <Form.Select defaultValue={editedNode.type} disabled={!allowTypeChange}>
-                        <option value="default">Default</option>
-                        <option value="input">Input</option>
-                        <option value="output">Output</option>
-                    </Form.Select>
-                </FloatingLabel>
-            </Col>
-        </Row>
-            <Row className="g-2 mt-1 mt-md-0">
-                <Col md>
-                    <FloatingLabel controlId="floatingSelect" label="Source Position" onChange={onNodeSourcePositionChange}>
-                        <Form.Select defaultValue={editedNode.sourcePosition}>
-                            <option value="right">Right</option>
-                            <option value="bottom">Bottom</option>
-                            <option value="top">Top</option>
-                            <option value="left">Left</option>
-                        </Form.Select>
-                    </FloatingLabel>
-                </Col>
-                <Col md>
-                    <FloatingLabel controlId="floatingSelect" label="Target Position" onChange={onNodeTargetPositionChange}>
-                        <Form.Select defaultValue={editedNode.targetPosition}>
-                            <option value="left">Left</option>
-                            <option value="top">Top</option>
-                            <option value="right">Right</option>
-                            <option value="bottom">Bottom</option>
-                        </Form.Select>
-                    </FloatingLabel>
-                </Col>
-            </Row>
-            <Row className="g-2 mt-2">
-                <Col md>
-                    <Form.Check type="switch" id="node-draggable-switch" label="Draggable" defaultChecked={editedNode.draggable} onChange={onNodeDraggableChange}/>
-                </Col>
-                <Col md>
-                    <Form.Check type="switch" id="node-connectable-switch" label="Connectable" defaultChecked={editedNode.connectable} onChange={onNodeConnectableChange}/>
-                </Col>
-                <Col md>
-                    <Form.Check type="switch" id="node-deletable-switch" label="Deletable" defaultChecked={editedNode.deletable} onChange={onNodeDeletableChange}/>
-                </Col>
-            </Row>
-        </Modal.Body>
-        <Modal.Footer>
-            <Button variant="secondary" onClick={handleClose}>
-                Close
-            </Button>
-            <Button variant="primary" onClick={handleSaveChanges}>
-                Save Changes
-            </Button>
-        </Modal.Footer>
-    </Modal>);
+        <Modal show={show} onHide={handleClose} data-bs-theme={theme} onExited={onExited}>
+            <Modal.Header closeButton>
+                <Modal.Title>Edit Node</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Row className='g-2'>
+                    <Col md>
+                        <FloatingLabel controlId="floatingInput" label="Node Name">
+                            <Form.Control type="text" placeholder="nodeName" value={editedNode.data.content} onChange={onNodeContentChange}/>
+                        </FloatingLabel>
+                    </Col>
+                </Row>
+                
+                <Row className="g-2 mt-2">
+                    <Col md={5}>
+                        <FloatingLabel controlId="floatingInput" label="Add Column">
+                            <Form.Control
+                                type="text"
+                                placeholder="New column name"
+                                value={newColumnName}
+                                onChange={(e) => setNewColumnName(e.target.value)}
+                            />
+                        </FloatingLabel>
+                    </Col>
+                    <Col md={4}>
+                        <FloatingLabel controlId="floatingSelect" label="Column Type">
+                            <Form.Select 
+                                value={newColumnType}
+                                onChange={(e) => setNewColumnType(e.target.value)}
+                            >
+                                <option value="string">String</option>
+                                <option value="number">Number</option>
+                                <option value="boolean">Boolean</option>
+                                <option value="date">Date</option>
+                                {/* Add more types as needed */}
+                            </Form.Select>
+                        </FloatingLabel>
+                    </Col>
+                    <Col md={3}>
+                        <Button variant="outline-primary" onClick={handleAddColumn}>Add Column</Button>
+                    </Col>
+                </Row>
+                <Row className="g-2 mt-2">
+                    <Col>
+                        <h6>Columns:</h6>
+                        <ListGroup>
+                            {columns.map((column, index) => (
+                                <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
+                                    {column.name} ({column.type})
+                                    <Button variant="outline-danger" size="sm" onClick={() => handleRemoveColumn(index)}>Remove</Button>
+                                </ListGroup.Item>
+                            ))}
+                        </ListGroup>
+                    </Col>
+                </Row>
+                
+                {/* Meta information */}
+                <Row className='g-2 mt-2'>
+                    <Col md>
+                        <FloatingLabel controlId="floatingInput" label="Node Width">
+                            <Form.Control type="number" placeholder="nodeWidth" value={editedNode.width} onChange={onNodeWidthChange}/>
+                        </FloatingLabel>
+                    </Col>
+                    <Col md>
+                        <FloatingLabel controlId="floatingSelect" label="Node Type" onChange={onNodeTypeChange}>
+                            <Form.Select defaultValue={editedNode.type} disabled={!allowTypeChange}>
+                                <option value="default">Default</option>
+                                <option value="input">Input</option>
+                                <option value="output">Output</option>
+                            </Form.Select>
+                        </FloatingLabel>
+                    </Col>
+                </Row>
+                {/* ... other meta fields ... */}
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={handleClose}>
+                    Close
+                </Button>
+                <Button variant="primary" onClick={handleSaveChanges}>
+                    Save Changes
+                </Button>
+            </Modal.Footer>
+        </Modal>
+    );
 };
 
 const NodeContextMenu = ({nodeContextMenu, nodes, edges, setNodeContextMenu, setNodes, setEdges, theme, handleDataReturnToStreamlit}) => {

@@ -43,3 +43,74 @@ th {
 table img {
     background-color: transparent;
 }
+
+/* New styles for columns */
+.columns-list {
+    margin-top: 10px;
+    border-top: 1px solid var(--color-border-muted);
+    padding-top: 10px;
+}
+
+.columns-list h6 {
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.columns-list ul {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.columns-list li {
+    position: relative;
+    padding: 5px;
+    font-size: 0.8em;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    margin-bottom: 5px;
+    background-color: #f8f8f8;
+}
+
+.columns-list .react-flow__handle {
+    width: 8px;
+    height: 8px;
+    background-color: #555;
+}
+
+.columns-list .react-flow__handle-right {
+    right: -4px;
+}
+
+.columns-list .react-flow__handle-left {
+    left: -4px;
+}
+
+/* Adjust the main node styling if needed */
+.markdown-node {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: white;
+    border: 1px solid #ddd;
+    width: 150px; /* Set default width */
+}
+
+.markdown-node p {
+    margin-bottom: 5px;
+}
+
+/* Hide main node handles */
+.markdown-node > .react-flow__handle {
+    display: none;
+}
+
+/* Style for when hovering over a connectable column */
+.columns-list li:hover {
+    background-color: #e8e8e8;
+}
+
+/* Style for when dragging a connection */
+.react-flow__handle.connectable:hover {
+    background-color: #00ff00;
+}

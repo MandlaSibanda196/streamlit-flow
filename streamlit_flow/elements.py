@@ -77,6 +77,7 @@ class StreamlitFlowNode:
             content = self.data.pop('label')
             self.data['content'] = content
 
+        self.columns = data.get('columns', [])  # Add this line
         self.__validate__()
 
     @classmethod
@@ -84,9 +85,14 @@ class StreamlitFlowNode:
 
         # other_attributes_dict = {key: value for key, value in node_dict.items() if key not in ['id', 'position', 'data', 'type', 'sourcePosition', 'targetPosition', 'hidden', 'selected', 'dragging', 'draggable', 'selectable', 'connectable', 'resizing', 'deletable', 'width', 'height', 'zIndex', 'focusable', 'style']}
 
+        # Update the data dictionary to include columns
+        data = node_dict.get('data', {})
+        if 'columns' in data:
+            data['columns'] = data['columns']
+        
         return cls( id=node_dict.get('id', ''),
                     pos=(node_dict['position'].get('x', 0), node_dict['position'].get('y', 0)),
-                    data=node_dict.get('data', {}),
+                    data=data,
                     node_type=node_dict.get('type', 'default'),
                     source_position=node_dict.get('sourcePosition', 'bottom'),
                     target_position=node_dict.get('targetPosition', 'top'),
@@ -113,7 +119,7 @@ class StreamlitFlowNode:
         node_dict = {
             "id": self.id,
             "position": self.position,
-            "data": self.data,
+            "data": {**self.data, "columns": self.columns},  # Update this line
             "type": self.type,
             "sourcePosition": self.source_position,
             "targetPosition": self.target_position,

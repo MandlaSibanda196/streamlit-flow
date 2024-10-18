@@ -1,3 +1,4 @@
+import React from 'react';
 import { Handle, Position } from 'reactflow';
 import Markdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight';
@@ -10,47 +11,38 @@ import 'highlight.js/styles/github.css';
 
 
 
-const handlePosMap = {
-    'top': Position.Top,
-    'right': Position.Right,
-    'bottom': Position.Bottom,
-    'left': Position.Left,
-}
-
-const MarkdownInputNode = ({ data, sourcePosition }) => {
+const MarkdownNode = ({ data }) => {
     return (
-        <>
-        <Handle type="source" position={handlePosMap[sourcePosition]} isConnectable />
-            <div className="markdown-node">
-                <Markdown rehypePlugins={[rehypeHighlight, rehypeRaw, rehypeKatex]} remarkPlugins={[remarkGfm, remarkMath]}>{data.content}</Markdown>
-            </div>
-        </>
-    );
-}
-
-const MarkdownOutputNode = ({ data, targetPosition }) => {
-
-    return (
-    <>
-        <Handle type="target" position={handlePosMap[targetPosition]} isConnectable />
         <div className="markdown-node">
-                <Markdown rehypePlugins={[rehypeHighlight, rehypeRaw, rehypeKatex]} remarkPlugins={[remarkGfm, remarkMath]}>{data.content}</Markdown>
-            </div>
-    </>
-    );
-}
-
-const MarkdownDefaultNode = ({ data, sourcePosition, targetPosition }) => {
-
-    return (
-    <>
-        <Handle type="source" position={handlePosMap[sourcePosition]} />
-        <div className="markdown-node">
-            <Markdown rehypePlugins={[rehypeHighlight, rehypeRaw, rehypeKatex]} remarkPlugins={[remarkGfm, remarkMath]}>{data.content}</Markdown>
+            <Markdown rehypePlugins={[rehypeHighlight, rehypeRaw, rehypeKatex]} remarkPlugins={[remarkGfm, remarkMath]}>
+                {data.content}
+            </Markdown>
+            {data.columns && data.columns.length > 0 && (
+                <div className="columns-list">
+                    <h6>Columns:</h6>
+                    <ul>
+                        {data.columns.map((column, index) => (
+                            <li key={index}>
+                                {column.name} ({column.type})
+                                <Handle
+                                    type="source"
+                                    position={Position.Right}
+                                    id={`${data.id}-${column.name}-source`}
+                                    style={{ top: '50%', transform: 'translateY(-50%)' }}
+                                />
+                                <Handle
+                                    type="target"
+                                    position={Position.Left}
+                                    id={`${data.id}-${column.name}-target`}
+                                    style={{ top: '50%', transform: 'translateY(-50%)' }}
+                                />
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
-        <Handle type="target" position={handlePosMap[targetPosition]} />
-    </>
     );
-}
+};
 
-export { MarkdownInputNode, MarkdownOutputNode, MarkdownDefaultNode };
+export default MarkdownNode;

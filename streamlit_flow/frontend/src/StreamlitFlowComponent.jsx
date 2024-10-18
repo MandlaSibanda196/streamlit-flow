@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from "react"
+import React, { useRef, useEffect, useState, useMemo, useCallback } from "react"
 import {
     Streamlit,
 } from "streamlit-component-lib"
@@ -21,7 +21,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 
 import './style.css';
 
-import {MarkdownInputNode, MarkdownOutputNode, MarkdownDefaultNode} from "./components/MarkdownNode";
+import MarkdownNode from "./components/MarkdownNode";
 import PaneConextMenu from "./components/PaneContextMenu";
 import NodeContextMenu from "./components/NodeContextMenu";
 import EdgeContextMenu from "./components/EdgeContextMenu";
@@ -30,7 +30,11 @@ import createElkGraphLayout from "./layouts/ElkLayout";
 
 const StreamlitFlowComponent = (props) => {
 
-    const nodeTypes = useMemo(() => ({ input: MarkdownInputNode, output: MarkdownOutputNode, default: MarkdownDefaultNode}), [])
+    const nodeTypes = useMemo(() => ({ 
+        input: MarkdownNode, 
+        output: MarkdownNode, 
+        default: MarkdownNode
+    }), [])
     
     const [viewFitAfterLayout, setViewFitAfterLayout] = useState(null);
     const [nodes, setNodes, onNodesChange] = useNodesState(props.args.nodes);
@@ -184,12 +188,15 @@ const StreamlitFlowComponent = (props) => {
     }
 
 
-    const handleConnect = (params) => {
-        const newEdgeId = `st-flow-edge_${params.source}-${params.target}`; 
-        const newEdges = addEdge({...params, animated:props.args["animateNewEdges"], labelShowBg:false, id: newEdgeId}, edges);
-        setEdges(newEdges);
-        handleDataReturnToStreamlit(nodes, newEdges, newEdgeId);
-    }
+    const handleConnect = useCallback((params) => {
+        // Only allow connections between columns
+        if (params.sourceHandle && params.targetHandle) {
+            const newEdgeId = `st-flow-edge_${params.source}-${params.target}_${params.sourceHandle}-${params.targetHandle}`; 
+            const newEdges = addEdge({...params, animated: props.args["animateNewEdges"], labelShowBg: false, id: newEdgeId}, edges);
+            setEdges(newEdges);
+            handleDataReturnToStreamlit(nodes, newEdges, newEdgeId);
+        }
+    }, [edges, nodes, props.args, handleDataReturnToStreamlit]);
 
     const handleNodeDragStop = (event, node) => {
         const updatedNodes = nodes.map(n => {
