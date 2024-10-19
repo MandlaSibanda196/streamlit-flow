@@ -1,10 +1,13 @@
 import streamlit as st
 from streamlit_flow import streamlit_flow
 from streamlit_flow.elements import StreamlitFlowNode, StreamlitFlowEdge
+from streamlit_flow.state import StreamlitFlowState
+from streamlit_flow.layouts import TreeLayout
 import random
 import json
 import os
 from streamlit.runtime.state import SessionState
+from uuid import uuid4
 
 st.set_page_config(page_title="Power BI Model Simulator - Streamlit Flow", layout="wide")
 
@@ -32,7 +35,20 @@ def create_node_from_schema(table_name, columns, position):
         'default',
         'right',
         'left',
-        deletable=True  # Add this line to make all nodes deletable
+        deletable=True,
+        handles=[
+            {
+                'id': f"{table_name}-{col['column_name']}-source",
+                'type': 'source',
+                'position': 'right'
+            } for col in columns
+        ] + [
+            {
+                'id': f"{table_name}-{col['column_name']}-target",
+                'type': 'target',
+                'position': 'left'
+            } for col in columns
+        ]
     )
 
 def validate_json_structure(json_data):
@@ -81,17 +97,65 @@ def get_edge_style(relationship_type):
     else:
         return {}
 
-if 'curr_state' not in st.session_state:
-    nodes = [StreamlitFlowNode("1", (0, 0), {'content': 'Node 1'}, 'input', 'right'),
-            StreamlitFlowNode("2", (1, 0), {'content': 'Node 2'}, 'default', 'right', 'left'),
-            StreamlitFlowNode("3", (2, 0), {'content': 'Node 3'}, 'default', 'right', 'left'),
-            ]
-
-    edges = [StreamlitFlowEdge("1-2", "1", "2", animated=True),
-            StreamlitFlowEdge("1-3", "1", "3", animated=True),
-            ]
+def on_edge_create(new_edge, nodes, edges):
+    source_node = next((node for node in nodes if node.id == new_edge.source), None)
+    target_node = next((node for node in nodes if node.id == new_edge.target), None)
     
-    st.session_state.curr_state = StreamlitFlowState(nodes, edges)
+    if source_node and target_node:
+        source_column = new_edge.source_handle.split('-')[-2] if new_edge.source_handle else 'Unknown'
+        target_column = new_edge.target_handle.split('-')[-2] if new_edge.target_handle else 'Unknown'
+        
+        new_edge.data = {
+            'relationship_type': 'OneToMany',  # Default type, can be changed later
+            'from_table': source_node.data['content'].strip('*'),
+            'from_column': source_column,
+            'to_table': target_node.data['content'].strip('*'),
+            'to_column': target_column,
+            'label': f'1:N'  # Default label, can be changed later
+        }
+    
+    return new_edge
+
+def update_edge_data(edge, nodes):
+    source_node = next((node for node in nodes if node.id == edge.source), None)
+    target_node = next((node for node in nodes if node.id == edge.target), None)
+    
+    if source_node and target_node:
+        # Parse the edge ID to extract column names
+        edge_parts = edge.id.split('_')
+        source_column = edge_parts[-3] if len(edge_parts) > 3 else 'Unknown'
+        target_column = edge_parts[-2] if len(edge_parts) > 2 else 'Unknown'
+        
+        edge.data = {
+            'relationship_type': 'OneToMany',  # Default type, can be changed later
+            'from_table': source_node.data['content'].strip('*'),
+            'from_column': source_column,
+            'to_table': target_node.data['content'].strip('*'),
+            'to_column': target_column,
+            'label': f'1:N'  # Default label, can be changed later
+        }
+    
+    return edge
+
+def parse_handle_id(handle_id):
+    parts = handle_id.split('-')
+    if len(parts) >= 3:
+        return parts[-2]
+    return 'Unknown'
+
+def parse_edge_id(edge_id):
+    parts = edge_id.split('_')
+    if len(parts) >= 4:
+        return parts[-3], parts[-2]
+    return 'Unknown', 'Unknown'
+
+def get_column_name(handle_id):
+    parts = handle_id.split('-')
+    return parts[-2] if len(parts) >= 2 else 'Unknown'
+
+if 'curr_state' not in st.session_state:
+    # Initialize with an empty state (no nodes or edges)
+    st.session_state.curr_state = StreamlitFlowState([], [])
 
 if 'validation_result' not in st.session_state:
     st.session_state.validation_result = None
@@ -179,37 +243,22 @@ with st.sidebar:
     elif st.session_state.validation_result == "error":
         st.error("Invalid JSON structure. Please check and follow the example structure provided.")
 
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    if st.button("Add node"):
-        new_node = StreamlitFlowNode(str(f"st-flow-node_{uuid4()}"), (0, 0), {'content': f'Node {len(st.session_state.curr_state.nodes) + 1}'}, 'default', 'right', 'left')
-        st.session_state.curr_state.nodes.append(new_node)
-        st.rerun()
-
-with col2:
-    if st.button("Delete Random Node"):
-        if len(st.session_state.curr_state.nodes) > 0:
-            node_to_delete = random.choice(st.session_state.curr_state.nodes)
-            st.session_state.curr_state.nodes = [node for node in st.session_state.curr_state.nodes if node.id != node_to_delete.id]
-            st.session_state.curr_state.edges = [edge for edge in st.session_state.curr_state.edges if edge.source != node_to_delete.id and edge.target != node_to_delete.id]
-            st.rerun()
-
-with col3:
-    if st.button("Add Random Edge"):
-        if len(st.session_state.curr_state.nodes) > 1:
-            source = random.choice(st.session_state.curr_state.nodes)
-            target = random.choice([node for node in st.session_state.curr_state.nodes if node.id != source.id])
-            new_edge = StreamlitFlowEdge(f"{source.id}-{target.id}", source.id, target.id, animated=True)
-            st.session_state.curr_state.edges.append(new_edge)
-            st.rerun()
-    
-with col4:
-    if st.button("Delete Random Edge"):
-        if len(st.session_state.curr_state.edges) > 0:
-            edge_to_delete = random.choice(st.session_state.curr_state.edges)
-            st.session_state.curr_state.edges = [edge for edge in st.session_state.curr_state.edges if edge.id != edge_to_delete.id]
-            st.rerun()
+# Keep the button to add tables
+if st.button("Add Table"):
+    new_node = StreamlitFlowNode(
+        str(f"st-flow-node_{uuid4()}"),
+        (len(st.session_state.curr_state.nodes) * 200, 0),
+        {
+            'content': f'New Table {len(st.session_state.curr_state.nodes) + 1}',
+            'columns': []
+        },
+        'default',
+        'right',
+        'left',
+        deletable=True
+    )
+    st.session_state.curr_state.nodes.append(new_node)
+    st.rerun()
 
 st.session_state.curr_state = streamlit_flow('example_flow', 
                                 st.session_state.curr_state, 
@@ -226,21 +275,71 @@ st.session_state.curr_state = streamlit_flow('example_flow',
                                 allow_new_edges=True,
                                 min_zoom=0.1)
 
-col1, col2, col3 = st.columns(3)
+# Update edge data for any new edges
+for edge in st.session_state.curr_state.edges:
+    if not hasattr(edge, 'data') or not edge.data:
+        edge = update_edge_data(edge, st.session_state.curr_state.nodes)
 
-with col1:
-    st.subheader("Current Nodes")
-    for node in st.session_state.curr_state.nodes:
-        st.write(node)
+# Display information about the selected element
+st.subheader("Current Selected Element")
+selected_id = st.session_state.curr_state.selected_id
 
-with col2:
-    st.subheader("Current Edges")
-    for edge in st.session_state.curr_state.edges:
-        st.write(edge)
+if selected_id:
+    selected_node = next((node for node in st.session_state.curr_state.nodes if node.id == selected_id), None)
+    selected_edge = next((edge for edge in st.session_state.curr_state.edges if edge.id == selected_id), None)
 
-with col3:
-    st.subheader("Current Selected Element")
-    st.write(st.session_state.curr_state.selected_id)
+    if selected_node:
+        st.write(f"Table: {selected_node.data['content']}")
+        if 'columns' in selected_node.data:
+            st.write("Columns:")
+            for column in selected_node.data['columns']:
+                st.write(f"- {column['column_name']} ({column['type']})")
+        else:
+            st.write("No columns defined for this table.")
+
+    elif selected_edge:
+        st.write("Relationship:")
+        if hasattr(selected_edge, 'data') and selected_edge.data:
+            st.write(f"Type: {selected_edge.data.get('relationship_type', 'Not specified')}")
+            st.write(f"From: {selected_edge.data.get('from_table', 'Unknown')} ({selected_edge.data.get('from_column', 'Unknown')})")
+            st.write(f"To: {selected_edge.data.get('to_table', 'Unknown')} ({selected_edge.data.get('to_column', 'Unknown')})")
+            st.write(f"Label: {selected_edge.data.get('label', 'Not specified')}")
+        else:
+            st.write("Edge data not available.")
+        st.write(f"Animated: {getattr(selected_edge, 'animated', False)}")
+        
+        # Debug information
+        st.write("Edge attributes:")
+        for attr in dir(selected_edge):
+            if not attr.startswith('__'):
+                st.write(f"{attr}: {getattr(selected_edge, attr)}")
+
+else:
+    st.write("No element selected")
+
+# col1, col2, col3 = st.columns(3)
+
+# with col1:
+#     st.subheader("Current Nodes")
+#     for node in st.session_state.curr_state.nodes:
+#         st.write(node)
+
+# with col2:
+#     st.subheader("Current Edges")
+#     for edge in st.session_state.curr_state.edges:
+#         st.write(edge)
+
+# with col3:
+#     st.subheader("Current Selected Element")
+#     st.write(st.session_state.curr_state.selected_id)
+
+
+
+
+
+
+
+
 
 
 
