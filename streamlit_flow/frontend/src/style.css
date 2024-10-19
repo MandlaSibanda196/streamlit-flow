@@ -47,7 +47,7 @@ table img {
 /* New styles for columns */
 .columns-list {
     margin-top: 10px;
-    border-top: 1px solid var(--color-border-muted);
+    border-top: 1px solid #ddd;
     padding-top: 10px;
 }
 
@@ -63,28 +63,47 @@ table img {
     margin: 0;
 }
 
-.columns-list li {
+.column-item {
     position: relative;
-    padding: 5px;
+    padding: 5px 20px;
     font-size: 0.8em;
     border: 1px solid #ddd;
     border-radius: 3px;
     margin-bottom: 5px;
     background-color: #f8f8f8;
+    min-height: 30px;
+    display: flex;
+    align-items: center;
 }
 
-.columns-list .react-flow__handle {
+.column-content {
+    flex-grow: 1;
+}
+
+.handle {
     width: 8px;
     height: 8px;
     background-color: #555;
+    border-radius: 50%;
+    position: absolute;
+    top: calc(50% + 1px); /* Adjust the '1px' value as needed */
+    transform: translateY(-50%);
 }
 
-.columns-list .react-flow__handle-right {
+.handle-right {
     right: -4px;
 }
 
-.columns-list .react-flow__handle-left {
+.handle-left {
     left: -4px;
+}
+
+.column-item:hover {
+    background-color: #e8e8e8;
+}
+
+.handle.connectable:hover {
+    background-color: #00ff00;
 }
 
 /* Adjust the main node styling if needed */
@@ -93,7 +112,7 @@ table img {
     border-radius: 5px;
     background-color: white;
     border: 1px solid #ddd;
-    width: 150px; /* Set default width */
+    width: 250px; /* Increased width */
 }
 
 .markdown-node p {
@@ -113,4 +132,11 @@ table img {
 /* Style for when dragging a connection */
 .react-flow__handle.connectable:hover {
     background-color: #00ff00;
+}
+
+.react-flow__edge-text {
+  font-size: 12px;
+  font-weight: bold;
+  fill: #333;
+  text-shadow: 1px 1px 2px white;
 }

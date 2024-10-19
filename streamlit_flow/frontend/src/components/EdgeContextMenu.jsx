@@ -8,8 +8,22 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 
-const EditEdgeModal = ({show, edge, nodes, edges, handleClose, theme, setEdgeContextMenu, setModalClosing, setEdges, handleDataReturnToStreamlit}) => {
+const getEdgeStyle = (relationshipType) => {
+  switch (relationshipType) {
+    case 'OneToOne':
+      return { label: '1:1', markerEnd: { type: 'arrow' }, markerStart: { type: 'arrow' } };
+    case 'OneToMany':
+      return { label: '1:N', markerEnd: { type: 'arrowclosed' } };
+    case 'ManyToOne':
+      return { label: 'N:1', markerStart: { type: 'arrowclosed' } };
+    case 'ManyToMany':
+      return { label: 'N:N', markerEnd: { type: 'arrowclosed' }, markerStart: { type: 'arrowclosed' } };
+    default:
+      return {};
+  }
+};
 
+const ViewRelationshipModal = ({show, edge, nodes, edges, handleClose, theme, setEdgeContextMenu, setModalClosing, setEdges, handleDataReturnToStreamlit}) => {
     const [editedEdge, setEditedEdge] = useState(edge);
     
     const onExited = (e) => {
@@ -17,28 +31,40 @@ const EditEdgeModal = ({show, edge, nodes, edges, handleClose, theme, setEdgeCon
         setEdgeContextMenu(null);
     }
 
-    const onEdgeLabelChange = (e) => {
-        setEditedEdge((editedEdge) => ({...editedEdge, label: e.target.value}));
+    const onRelationshipTypeChange = (e) => {
+        setEditedEdge((prev) => ({...prev, data: {...prev.data, relationship_type: e.target.value, label: e.target.value}}));
+    }
+
+    const onFromTableChange = (e) => {
+        setEditedEdge((prev) => ({...prev, data: {...prev.data, from_table: e.target.value}}));
+    }
+
+    const onFromColumnChange = (e) => {
+        setEditedEdge((prev) => ({...prev, data: {...prev.data, from_column: e.target.value}}));
+    }
+
+    const onToTableChange = (e) => {
+        setEditedEdge((prev) => ({...prev, data: {...prev.data, to_table: e.target.value}}));
+    }
+
+    const onToColumnChange = (e) => {
+        setEditedEdge((prev) => ({...prev, data: {...prev.data, to_column: e.target.value}}));
     }
 
     const onEdgeTypeChange = (e) => {
-        setEditedEdge((editedEdge) => ({...editedEdge, type: e.target.value}));
+        setEditedEdge((prev) => ({...prev, type: e.target.value}));
     }
 
-    const onEdgeAnimatedChange = (e) => {
-        setEditedEdge((editedEdge) => ({...editedEdge, animated: e.target.checked}));
-    }
-
-    const onEdgeDeletableChange = (e) => {
-        setEditedEdge((editedEdge) => ({...editedEdge, deletable: e.target.checked}));
-    }
-
-    const onEdgeLabelShowBgChange = (e) => {
-        setEditedEdge((editedEdge) => ({...editedEdge, labelShowBg: e.target.checked}));
+    const onAnimatedChange = (e) => {
+        setEditedEdge((prev) => ({...prev, animated: e.target.checked}));
     }
 
     const handleSaveChanges = (e) => {
-        const updatedEdges = edges.map(ed => ed.id === editedEdge.id ? editedEdge : ed);
+        const updatedEdge = {
+            ...editedEdge,
+            ...getEdgeStyle(editedEdge.data.relationship_type)
+        };
+        const updatedEdges = edges.map(ed => ed.id === updatedEdge.id ? updatedEdge : ed);
         setEdges(updatedEdges);
         handleDataReturnToStreamlit(nodes, updatedEdges, null);
         setEdgeContextMenu(null);
@@ -47,18 +73,49 @@ const EditEdgeModal = ({show, edge, nodes, edges, handleClose, theme, setEdgeCon
     return (
         <Modal show={show} onHide={handleClose} data-bs-theme={theme} onExited={onExited}>
             <Modal.Header closeButton>
-                <Modal.Title>Edit Edge</Modal.Title>
+                <Modal.Title>View Relationship</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Row className="g-2">
                     <Col md>
-                        <FloatingLabel controlId="floatingInput" label="Edge Label">
-                            <Form.Control type="text" placeholder="edgeLabel" value={editedEdge.label} autoFocus onChange={onEdgeLabelChange}/>
+                        <FloatingLabel controlId="floatingSelect" label="Relationship Type">
+                            <Form.Select aria-label="Relationship Type" value={editedEdge.data?.relationship_type || ''} onChange={onRelationshipTypeChange}>
+                                <option value="OneToOne">One-to-One</option>
+                                <option value="OneToMany">One-to-Many</option>
+                                <option value="ManyToOne">Many-to-One</option>
+                                <option value="ManyToMany">Many-to-Many</option>
+                            </Form.Select>
                         </FloatingLabel>
                     </Col>
+                </Row>
+                <Row className="g-2 mt-2">
+                    <Col md={6}>
+                        <FloatingLabel controlId="floatingInput" label="From Table">
+                            <Form.Control type="text" placeholder="From Table" value={editedEdge.data?.from_table || ''} onChange={onFromTableChange}/>
+                        </FloatingLabel>
+                    </Col>
+                    <Col md={6}>
+                        <FloatingLabel controlId="floatingInput" label="From Column">
+                            <Form.Control type="text" placeholder="From Column" value={editedEdge.data?.from_column || ''} onChange={onFromColumnChange}/>
+                        </FloatingLabel>
+                    </Col>
+                </Row>
+                <Row className="g-2 mt-2">
+                    <Col md={6}>
+                        <FloatingLabel controlId="floatingInput" label="To Table">
+                            <Form.Control type="text" placeholder="To Table" value={editedEdge.data?.to_table || ''} onChange={onToTableChange}/>
+                        </FloatingLabel>
+                    </Col>
+                    <Col md={6}>
+                        <FloatingLabel controlId="floatingInput" label="To Column">
+                            <Form.Control type="text" placeholder="To Column" value={editedEdge.data?.to_column || ''} onChange={onToColumnChange}/>
+                        </FloatingLabel>
+                    </Col>
+                </Row>
+                <Row className="g-2 mt-2">
                     <Col md>
                         <FloatingLabel controlId="floatingSelect" label="Edge Type">
-                            <Form.Select aria-label="Edge Type" defaultValue={editedEdge.type} onChange={onEdgeTypeChange}>
+                            <Form.Select aria-label="Edge Type" value={editedEdge.type} onChange={onEdgeTypeChange}>
                                 <option value="default">Default</option>
                                 <option value="straight">Straight</option>
                                 <option value="step">Step</option>
@@ -68,15 +125,15 @@ const EditEdgeModal = ({show, edge, nodes, edges, handleClose, theme, setEdgeCon
                         </FloatingLabel>
                     </Col>
                 </Row>
-                <Row className="g-2 mt-1 mt-md-0">
+                <Row className="g-2 mt-2">
                     <Col md>
-                        <Form.Check type="switch" id="edgeAnimated" label="Animated" defaultChecked={editedEdge.animated} onChange={onEdgeAnimatedChange}/>
-                    </Col>
-                    <Col md>
-                        <Form.Check type="switch" id="edgeDeletable" label="Deletable" defaultChecked={editedEdge.deletable} onChange={onEdgeDeletableChange}/>
-                    </Col>
-                    <Col md>
-                        <Form.Check type="switch" id="edgeLabelShowBg" label="Label BG" defaultChecked={editedEdge.labelShowBg} onChange={onEdgeLabelShowBgChange}/>
+                        <Form.Check 
+                            type="switch"
+                            id="animated-switch"
+                            label="Animated"
+                            checked={editedEdge.animated || false}
+                            onChange={onAnimatedChange}
+                        />
                     </Col>
                 </Row>
             </Modal.Body>
@@ -86,11 +143,9 @@ const EditEdgeModal = ({show, edge, nodes, edges, handleClose, theme, setEdgeCon
             </Modal.Footer>
         </Modal>
     );
-
 }
 
 const EdgeContextMenu = ({edgeContextMenu, nodes, edges, setEdgeContextMenu, setEdges, handleDataReturnToStreamlit, theme}) => {
-
     const [showModal, setShowModal] = useState(false);
     const [modalClosing, setModalClosing] = useState(false);
 
@@ -101,17 +156,14 @@ const EdgeContextMenu = ({edgeContextMenu, nodes, edges, setEdgeContextMenu, set
 
     const handleShow = () => setShowModal(true);
 
-    const handleEditEdge = (e) => {
+    const handleViewRelationship = (e) => {
         handleShow();
     }
 
     const handleDeleteEdge = (e) => {
-        if(edgeContextMenu.edge.deletable)
-        {
-            const updatedEdges = edges.filter(edge => edge.id !== edgeContextMenu.edge.id);
-            setEdges(updatedEdges);
-            handleDataReturnToStreamlit(nodes, updatedEdges, null);
-        }
+        const updatedEdges = edges.filter(edge => edge.id !== edgeContextMenu.edge.id);
+        setEdges(updatedEdges);
+        handleDataReturnToStreamlit(nodes, updatedEdges, null);
         setEdgeContextMenu(null);
     }
 
@@ -126,11 +178,11 @@ const EdgeContextMenu = ({edgeContextMenu, nodes, edges, setEdgeContextMenu, set
                         borderRadius: '8px',
                         zIndex: 10}}>
             {(!showModal && !modalClosing) && <ButtonGroup vertical>
-                <Button variant="outline-primary" onClick={handleEditEdge}><i className="bi bi-tools"></i> Edit Edge</Button>
-                <Button variant={edgeContextMenu.edge.deletable ? "outline-danger" : "secondary"} onClick={handleDeleteEdge} disabled={!edgeContextMenu.edge.deletable}><i className="bi bi-trash3"></i> Delete Edge</Button>
+                <Button variant="outline-primary" onClick={handleViewRelationship}><i className="bi bi-eye"></i> View Relationship</Button>
+                <Button variant="outline-danger" onClick={handleDeleteEdge}><i className="bi bi-trash3"></i> Delete Edge</Button>
             </ButtonGroup>}
         </div>
-        <EditEdgeModal show={showModal}
+        <ViewRelationshipModal show={showModal}
             edge={edgeContextMenu.edge}
             nodes={nodes}
             edges={edges}

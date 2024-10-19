@@ -13,7 +13,7 @@ const EditNodeModal = ({show, node, handleClose, theme, setNodeContextMenu, setM
     const [editedNode, setEditedNode] = useState(node);
     const [columns, setColumns] = useState(editedNode.data.columns || []);
     const [newColumnName, setNewColumnName] = useState('');
-    const [newColumnType, setNewColumnType] = useState('string'); // Default type
+    const [newColumnType, setNewColumnType] = useState('string');
     const allowTypeChange = edges.filter(edge => edge.source === editedNode.id || edge.target === editedNode.id).length === 0;
     
     const onExited = (e) => {
@@ -55,10 +55,10 @@ const EditNodeModal = ({show, node, handleClose, theme, setNodeContextMenu, setM
     };
 
     const handleAddColumn = () => {
-        if (newColumnName.trim()) {
-            setColumns([...columns, { name: newColumnName.trim(), type: newColumnType }]);
+        if (newColumnName && newColumnType) {
+            setColumns([...columns, { column_name: newColumnName, type: newColumnType }]);
             setNewColumnName('');
-            setNewColumnType('string'); // Reset to default after adding
+            setNewColumnType('string');
         }
     };
 
@@ -66,15 +66,11 @@ const EditNodeModal = ({show, node, handleClose, theme, setNodeContextMenu, setM
         setColumns(columns.filter((_, i) => i !== index));
     };
 
-    const handleSaveChanges = (e) => {
-        const updatedNode = {
-            ...editedNode,
-            data: {...editedNode.data, columns: columns},
-        };
-        const updatedNodes = nodes.map(n => n.id === updatedNode.id ? updatedNode : n);
-        setNodes(updatedNodes);
-        handleDataReturnToStreamlit(updatedNodes, edges, null);
-        setNodeContextMenu(null);
+    const handleSave = () => {
+        const updatedNode = {...editedNode, data: {...editedNode.data, columns: columns}};
+        setNodes(nodes.map(n => n.id === updatedNode.id ? updatedNode : n));
+        handleDataReturnToStreamlit(nodes.map(n => n.id === updatedNode.id ? updatedNode : n), edges, updatedNode.id);
+        handleClose();
     };
 
     return (
@@ -83,83 +79,54 @@ const EditNodeModal = ({show, node, handleClose, theme, setNodeContextMenu, setM
                 <Modal.Title>Edit Node</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                <Row className='g-2'>
-                    <Col md>
-                        <FloatingLabel controlId="floatingInput" label="Node Name">
-                            <Form.Control type="text" placeholder="nodeName" value={editedNode.data.content} onChange={onNodeContentChange}/>
-                        </FloatingLabel>
-                    </Col>
-                </Row>
-                
-                <Row className="g-2 mt-2">
-                    <Col md={5}>
-                        <FloatingLabel controlId="floatingInput" label="Add Column">
-                            <Form.Control
-                                type="text"
-                                placeholder="New column name"
-                                value={newColumnName}
-                                onChange={(e) => setNewColumnName(e.target.value)}
-                            />
-                        </FloatingLabel>
-                    </Col>
-                    <Col md={4}>
-                        <FloatingLabel controlId="floatingSelect" label="Column Type">
-                            <Form.Select 
-                                value={newColumnType}
-                                onChange={(e) => setNewColumnType(e.target.value)}
-                            >
-                                <option value="string">String</option>
-                                <option value="number">Number</option>
-                                <option value="boolean">Boolean</option>
-                                <option value="date">Date</option>
-                                {/* Add more types as needed */}
-                            </Form.Select>
-                        </FloatingLabel>
-                    </Col>
-                    <Col md={3}>
-                        <Button variant="outline-primary" onClick={handleAddColumn}>Add Column</Button>
-                    </Col>
-                </Row>
-                <Row className="g-2 mt-2">
-                    <Col>
-                        <h6>Columns:</h6>
+                <Form>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Node Content</Form.Label>
+                        <Form.Control as="textarea" rows={3} value={editedNode.data.content} onChange={onNodeContentChange} />
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Columns</Form.Label>
                         <ListGroup>
                             {columns.map((column, index) => (
                                 <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center">
-                                    {column.name} ({column.type})
+                                    {column.column_name} ({column.type})
                                     <Button variant="outline-danger" size="sm" onClick={() => handleRemoveColumn(index)}>Remove</Button>
                                 </ListGroup.Item>
                             ))}
                         </ListGroup>
-                    </Col>
-                </Row>
-                
-                {/* Meta information */}
-                <Row className='g-2 mt-2'>
-                    <Col md>
-                        <FloatingLabel controlId="floatingInput" label="Node Width">
-                            <Form.Control type="number" placeholder="nodeWidth" value={editedNode.width} onChange={onNodeWidthChange}/>
-                        </FloatingLabel>
-                    </Col>
-                    <Col md>
-                        <FloatingLabel controlId="floatingSelect" label="Node Type" onChange={onNodeTypeChange}>
-                            <Form.Select defaultValue={editedNode.type} disabled={!allowTypeChange}>
-                                <option value="default">Default</option>
-                                <option value="input">Input</option>
-                                <option value="output">Output</option>
-                            </Form.Select>
-                        </FloatingLabel>
-                    </Col>
-                </Row>
-                {/* ... other meta fields ... */}
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Row>
+                            <Col>
+                                <Form.Control 
+                                    type="text" 
+                                    placeholder="New Column Name" 
+                                    value={newColumnName}
+                                    onChange={(e) => setNewColumnName(e.target.value)}
+                                />
+                            </Col>
+                            <Col>
+                                <Form.Select 
+                                    value={newColumnType}
+                                    onChange={(e) => setNewColumnType(e.target.value)}
+                                >
+                                    <option value="string">String</option>
+                                    <option value="number">Number</option>
+                                    <option value="boolean">Boolean</option>
+                                    <option value="date">Date</option>
+                                </Form.Select>
+                            </Col>
+                            <Col>
+                                <Button variant="outline-primary" onClick={handleAddColumn}>Add Column</Button>
+                            </Col>
+                        </Row>
+                    </Form.Group>
+                    {/* Keep other form fields for node properties */}
+                </Form>
             </Modal.Body>
             <Modal.Footer>
-                <Button variant="secondary" onClick={handleClose}>
-                    Close
-                </Button>
-                <Button variant="primary" onClick={handleSaveChanges}>
-                    Save Changes
-                </Button>
+                <Button variant="secondary" onClick={handleClose}>Close</Button>
+                <Button variant="primary" onClick={handleSave}>Save Changes</Button>
             </Modal.Footer>
         </Modal>
     );
@@ -182,14 +149,11 @@ const NodeContextMenu = ({nodeContextMenu, nodes, edges, setNodeContextMenu, set
     }
 
     const handleDeleteNode = (e) => {
-        if(nodeContextMenu.node.deletable)
-        {
-            const updatedNodes = nodes.filter(node => node.id !== nodeContextMenu.node.id)
-            const updatedEdges = edges.filter(edge => edge.source !== nodeContextMenu.node.id && edge.target !== nodeContextMenu.node.id)
-            setNodes(updatedNodes);
-            setEdges(updatedEdges);
-            handleDataReturnToStreamlit(updatedNodes, updatedEdges, null);
-        }
+        const updatedNodes = nodes.filter(node => node.id !== nodeContextMenu.node.id)
+        const updatedEdges = edges.filter(edge => edge.source !== nodeContextMenu.node.id && edge.target !== nodeContextMenu.node.id)
+        setNodes(updatedNodes);
+        setEdges(updatedEdges);
+        handleDataReturnToStreamlit(updatedNodes, updatedEdges, null);
         setNodeContextMenu(null);
     }
 
@@ -205,7 +169,7 @@ const NodeContextMenu = ({nodeContextMenu, nodes, edges, setNodeContextMenu, set
                             zIndex: 10}}>
                 {(!showModal && !modalClosing) && <ButtonGroup vertical>
                     <Button variant="outline-primary" onClick={handleEditNode}><i className="bi bi-tools"></i> Edit Node</Button>
-                    <Button variant={nodeContextMenu.node.deletable ? "outline-danger" : "secondary"} onClick={handleDeleteNode} disabled={!nodeContextMenu.node.deletable}><i className="bi bi-trash3"></i> Delete Node</Button>
+                    <Button variant="outline-danger" onClick={handleDeleteNode}><i className="bi bi-trash3"></i> Delete Node</Button>
                 </ButtonGroup>}
             </div>
             <EditNodeModal show={showModal}

@@ -22,19 +22,19 @@ const MarkdownNode = ({ data }) => {
                     <h6>Columns:</h6>
                     <ul>
                         {data.columns.map((column, index) => (
-                            <li key={index}>
-                                {column.name} ({column.type})
+                            <li key={index} className="column-item">
+                                <span className="column-content">{column.column_name} ({column.type})</span>
                                 <Handle
                                     type="source"
                                     position={Position.Right}
-                                    id={`${data.id}-${column.name}-source`}
-                                    style={{ top: '50%', transform: 'translateY(-50%)' }}
+                                    id={`${data.id}-${column.column_name}-source`}
+                                    className="handle handle-right"
                                 />
                                 <Handle
                                     type="target"
                                     position={Position.Left}
-                                    id={`${data.id}-${column.name}-target`}
-                                    style={{ top: '50%', transform: 'translateY(-50%)' }}
+                                    id={`${data.id}-${column.column_name}-target`}
+                                    className="handle handle-left"
                                 />
                             </li>
                         ))}

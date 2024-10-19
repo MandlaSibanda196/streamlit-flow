@@ -1,0 +1,137 @@
+{
+    "tables": [
+      {
+        "table_name": "Customers",
+        "columns": [
+          {
+            "column_name": "CustomerID",
+            "type": "Integer",
+            "isPrimaryKey": true
+          },
+          {
+            "column_name": "CustomerName",
+            "type": "Text"
+          },
+          {
+            "column_name": "Email",
+            "type": "Text"
+          },
+          {
+            "column_name": "Country",
+            "type": "Text"
+          }
+        ]
+      },
+      {
+        "table_name": "Orders",
+        "columns": [
+          {
+            "column_name": "OrderID",
+            "type": "Integer",
+            "isPrimaryKey": true
+          },
+          {
+            "column_name": "CustomerID",
+            "type": "Integer",
+            "isForeignKey": true,
+            "references": {
+              "table_name": "Customers",
+              "column_name": "CustomerID"
+            }
+          },
+          {
+            "column_name": "OrderDate",
+            "type": "Date"
+          },
+          {
+            "column_name": "OrderAmount",
+            "type": "Decimal"
+          }
+        ]
+      },
+      {
+        "table_name": "Products",
+        "columns": [
+          {
+            "column_name": "ProductID",
+            "type": "Integer",
+            "isPrimaryKey": true
+          },
+          {
+            "column_name": "ProductName",
+            "type": "Text"
+          },
+          {
+            "column_name": "Category",
+            "type": "Text"
+          },
+          {
+            "column_name": "Price",
+            "type": "Decimal"
+          }
+        ]
+      },
+      {
+        "table_name": "OrderDetails",
+        "columns": [
+          {
+            "column_name": "OrderDetailID",
+            "type": "Integer",
+            "isPrimaryKey": true
+          },
+          {
+            "column_name": "OrderID",
+            "type": "Integer",
+            "isForeignKey": true,
+            "references": {
+              "table_name": "Orders",
+              "column_name": "OrderID"
+            }
+          },
+          {
+            "column_name": "ProductID",
+            "type": "Integer",
+            "isForeignKey": true,
+            "references": {
+              "table_name": "Products",
+              "column_name": "ProductID"
+            }
+          },
+          {
+            "column_name": "Quantity",
+            "type": "Integer"
+          },
+          {
+            "column_name": "TotalPrice",
+            "type": "Decimal",
+            "calculatedColumn": true,
+            "formula": "Price * Quantity"
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "from_table": "Customers",
+        "from_column": "CustomerID",
+        "to_table": "Orders",
+        "to_column": "CustomerID",
+        "relationship_type": "OneToMany"
+      },
+      {
+        "from_table": "Orders",
+        "from_column": "OrderID",
+        "to_table": "OrderDetails",
+        "to_column": "OrderID",
+        "relationship_type": "OneToMany"
+      },
+      {
+        "from_table": "Products",
+        "from_column": "ProductID",
+        "to_table": "OrderDetails",
+        "to_column": "ProductID",
+        "relationship_type": "OneToMany"
+      }
+    ]
+  }
+  
